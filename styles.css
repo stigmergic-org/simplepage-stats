@@ -6,7 +6,8 @@
   --header-bg: #f8f9fa;
   --table-bg: #ffffff;
   --border-color: #e9ecef;
-  --hover-bg: #f8f9fa;
+  --zebra-bg: #f8f9fa;
+  --hover-bg: #e9ecef;
   --tab-active: #007bff;
   --positive: #28a745;
   --negative: #dc3545;
@@ -20,12 +21,17 @@
     --header-bg: #1e1e1e;
     --table-bg: #1e1e1e;
     --border-color: #333333;
+    --zebra-bg: #1e1e1e;
     --hover-bg: #2a2a2a;
     --tab-active: #4dabf7;
     --positive: #40c057;
     --negative: #fa5252;
     --neutral: #868e96;
   }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -35,6 +41,8 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 header {
@@ -48,6 +56,7 @@ h1 {
   margin: 0;
   font-size: 2.5rem;
   font-weight: 600;
+  color: var(--text-color);
 }
 
 header p {
@@ -60,23 +69,26 @@ header p {
   display: flex;
   justify-content: center;
   margin: 2rem 0;
+  flex-wrap: wrap;
 }
 
 .tab-button {
   background: none;
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   padding: 0.75rem 1.5rem;
-  margin: 0 0.25rem;
+  margin: 0 0.25rem 0.5rem;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
   border-radius: 0.5rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   color: var(--text-color);
+  background-color: var(--table-bg);
 }
 
 .tab-button:hover {
   background-color: var(--hover-bg);
+  border-color: var(--tab-active);
 }
 
 .tab-button.active {
@@ -87,17 +99,21 @@ header p {
 
 .period-table {
   max-width: 1200px;
-  margin: 0 auto 2rem;
+  margin: 0 auto 3rem;
   padding: 0 1rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   background-color: var(--table-bg);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
 }
 
 th, td {
@@ -109,25 +125,59 @@ th, td {
 th {
   background-color: var(--header-bg);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: var(--text-color);
+  border-bottom: 2px solid var(--border-color);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:nth-child(even) {
+  background-color: var(--zebra-bg);
 }
 
 tr:hover {
   background-color: var(--hover-bg);
 }
 
+td a {
+  color: var(--tab-active);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+td a:hover {
+  color: var(--text-color);
+  text-decoration: underline;
+}
+
 .positive {
   color: var(--positive);
+  font-weight: 500;
 }
 
 .negative {
   color: var(--negative);
+  font-weight: 500;
 }
 
 .neutral {
   color: var(--neutral);
+  font-weight: 500;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  color: var(--neutral);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 2rem;
 }
 
 @media (max-width: 768px) {
@@ -138,18 +188,33 @@ tr:hover {
 
   .tab-button {
     margin: 0.25rem 0;
-    width: 200px;
+    width: 220px;
+    font-size: 0.95rem;
   }
 
   table {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 
   th, td {
-    padding: 0.75rem 0.5rem;
+    padding: 0.6rem 0.4rem;
   }
 
   h1 {
     font-size: 2rem;
+  }
+
+  header {
+    padding: 1.5rem 1rem;
+  }
+
+  .period-table {
+    padding: 0 0.5rem;
+    overflow-x: auto;
+  }
+
+  footer {
+    padding: 0.75rem;
+    font-size: 0.8rem;
   }
 }

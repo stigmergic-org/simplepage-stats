@@ -130,7 +130,8 @@ function generateHTML(data) {
     data[period.key].forEach((item, index) => {
       const changeClass = item.change ? (parseFloat(item.change) > 0 ? 'positive' : parseFloat(item.change) < 0 ? 'negative' : 'neutral') : '';
       const changeText = item.change ? `${item.change}%` : 'N/A';
-      tables += `<tr><td>${index + 1}</td><td>${item.domain}</td><td>${item.visitors.toLocaleString()}</td><td class="${changeClass}">${changeText}</td></tr>`;
+      const domainLink = `https://${item.domain.replace('.eth', '.eth.link')}`;
+      tables += `<tr><td>${index + 1}</td><td><a href="${domainLink}" target="_blank" rel="noopener">${item.domain}</a></td><td>${item.visitors.toLocaleString()}</td><td class="${changeClass}">${changeText}</td></tr>`;
     });
     tables += '</tbody></table></div>';
   });
@@ -156,11 +157,14 @@ function showPeriod(period) {
 </head>
 <body>
   <header>
-    <h1>SimplePage Stats Leaderboard</h1>
-    <p>Top domains by visitor count</p>
+    <h1>SimplePage Leaderboard</h1>
+    <p>Top sites by visitors</p>
   </header>
   ${tabs}
   ${tables}
+  <footer>
+    <p>Powered by Plausible Analytics | Updated daily</p>
+  </footer>
   ${script}
 </body>
 </html>`;
