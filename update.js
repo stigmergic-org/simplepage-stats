@@ -116,6 +116,7 @@ async function main() {
 }
 
 function generateHTML(data) {
+  const timestamp = new Date().toLocaleString('sv-SE');
   const periods = PERIODS;
   let tabs = '<div class="tabs">';
   periods.forEach((period, idx) => {
@@ -162,13 +163,13 @@ function showPeriod(period) {
        <img src="logo.svg" alt="SimplePage Logo" class="logo">
        <h1>SimplePage Leaderboard</h1>
      </div>
-     <p>Top sites by visitors</p>
+     <p>Top sites by number of visitors</p>
    </header>
   ${tabs}
   ${tables}
-  <footer>
-    <p>Powered by Plausible Analytics | Updated daily</p>
-  </footer>
+   <footer>
+     <p>Updated daily | Last update: ${timestamp}</p>
+   </footer>
   ${script}
 </body>
 </html>`;
