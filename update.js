@@ -3,7 +3,11 @@ const fs = require('fs');
 
 const API_URL = 'https://plausible.io/api/v2/query';
 const SITE_ID = 'simplepage.eth.link';
-const PERIODS = ['7d', '30d', '12mo'];
+const PERIODS = [
+  { key: '7d', label: 'Week', days: 7 },
+  { key: '30d', label: 'Month', days: 30 },
+  { key: '12mo', label: 'Year', days: 365 }
+];
 
 const API_KEY = process.env.PLAUSIBLE_API_KEY;
 if (!API_KEY) {
@@ -20,38 +24,76 @@ function normalizeHostname(hostname) {
 }
 
 async function fetchData(period) {
-  const body = {
+  const today = new Date();
+
+  // Current period: today - days to today
+  const currentEnd = new Date(today);
+  const currentStart = new Date(today);
+  currentStart.setDate(today.getDate() - period.days);
+
+  // Previous period: today - 2*days to today - days
+  const prevEnd = new Date(currentStart);
+  const prevStart = new Date(today);
+  prevStart.setDate(today.getDate() - 2 * period.days);
+
+  const formatDate = (date) => date.toISOString().split('T')[0];
+
+  const currentRange = [formatDate(currentStart), formatDate(currentEnd)];
+  const prevRange = [formatDate(prevStart), formatDate(prevEnd)];
+
+  const baseBody = {
     site_id: SITE_ID,
     metrics: ['visitors'],
-    date_range: period,
     dimensions: ['event:hostname']
   };
 
   try {
-    const response = await axios.post(API_URL, body, {
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    const [currentRes, prevRes] = await Promise.all([
+      axios.post(API_URL, { ...baseBody, date_range: currentRange }, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }),
+      axios.post(API_URL, { ...baseBody, date_range: prevRange }, {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }).catch(() => ({ data: { results: [] } })) // If prev fails, no change
+    ]);
 
-    const data = {};
-    response.data.results.forEach(row => {
+    const currentData = {};
+    currentRes.data.results.forEach(row => {
       const hostname = row.dimensions[0];
       const visitors = row.metrics[0];
       const normalized = normalizeHostname(hostname);
       if (normalized) {
-        data[normalized] = (data[normalized] || 0) + visitors;
+        currentData[normalized] = (currentData[normalized] || 0) + visitors;
       }
     });
 
-    const sorted = Object.entries(data)
-      .map(([domain, visitors]) => ({ domain, visitors }))
+    const prevData = {};
+    prevRes.data.results.forEach(row => {
+      const hostname = row.dimensions[0];
+      const visitors = row.metrics[0];
+      const normalized = normalizeHostname(hostname);
+      if (normalized) {
+        prevData[normalized] = (prevData[normalized] || 0) + visitors;
+      }
+    });
+
+    const sorted = Object.entries(currentData)
+      .map(([domain, visitors]) => {
+        const prevVisitors = prevData[domain] || 0;
+        const change = prevVisitors > 0 ? ((visitors - prevVisitors) / prevVisitors * 100).toFixed(1) : null;
+        return { domain, visitors, change };
+      })
       .sort((a, b) => b.visitors - a.visitors || a.domain.localeCompare(b.domain));
 
     return sorted;
   } catch (error) {
-    console.error(`Error fetching data for ${period}:`, error.message);
+    console.error(`Error fetching data for ${period.key}:`, error.message);
     return [];
   }
 }
@@ -59,8 +101,8 @@ async function fetchData(period) {
 async function main() {
   const data = {};
   for (const period of PERIODS) {
-    console.log(`Fetching data for ${period}...`);
-    data[period] = await fetchData(period);
+    console.log(`Fetching data for ${period.key}...`);
+    data[period.key] = await fetchData(period);
   }
 
   // Write data.json
@@ -74,18 +116,35 @@ async function main() {
 }
 
 function generateHTML(data) {
-  const periods = Object.keys(data);
-  let body = '<body><h1>SimplePage Leaderboard</h1>';
+  const periods = PERIODS;
+  let tabs = '<div class="tabs">';
+  periods.forEach((period, idx) => {
+    tabs += `<button class="tab-button ${idx === 0 ? 'active' : ''}" onclick="showPeriod('${period.key}')">${period.label}</button>`;
+  });
+  tabs += '</div>';
 
-  periods.forEach(period => {
-    body += `<h2>${period}</h2><table><thead><tr><th>Rank</th><th>Domain</th><th>Visitors</th></tr></thead><tbody>`;
-    data[period].forEach((item, index) => {
-      body += `<tr><td>${index + 1}</td><td>${item.domain}</td><td>${item.visitors}</td></tr>`;
+  let tables = '';
+  periods.forEach((period, idx) => {
+    const display = idx === 0 ? 'block' : 'none';
+    tables += `<div id="${period.key}" class="period-table" style="display: ${display}"><table><thead><tr><th>Rank</th><th>Domain</th><th>Visitors</th><th>Change</th></tr></thead><tbody>`;
+    data[period.key].forEach((item, index) => {
+      const changeClass = item.change ? (parseFloat(item.change) > 0 ? 'positive' : parseFloat(item.change) < 0 ? 'negative' : 'neutral') : '';
+      const changeText = item.change ? `${item.change}%` : 'N/A';
+      tables += `<tr><td>${index + 1}</td><td>${item.domain}</td><td>${item.visitors.toLocaleString()}</td><td class="${changeClass}">${changeText}</td></tr>`;
     });
-    body += '</tbody></table>';
+    tables += '</tbody></table></div>';
   });
 
-  body += '</body>';
+  const script = `
+<script>
+function showPeriod(period) {
+  document.querySelectorAll('.period-table').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(period).style.display = 'block';
+  event.target.classList.add('active');
+}
+</script>
+`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -95,7 +154,15 @@ function generateHTML(data) {
   <title>SimplePage Leaderboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-${body}
+<body>
+  <header>
+    <h1>SimplePage Stats Leaderboard</h1>
+    <p>Top domains by visitor count</p>
+  </header>
+  ${tabs}
+  ${tables}
+  ${script}
+</body>
 </html>`;
 }
 
