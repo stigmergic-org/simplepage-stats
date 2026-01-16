@@ -153,13 +153,17 @@ function showPeriod(period) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SimplePage Leaderboard</title>
+  <link rel="icon" href="logo.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <header>
-    <h1>SimplePage Leaderboard</h1>
-    <p>Top sites by visitors</p>
-  </header>
+ <body>
+   <header>
+     <div class="title-row">
+       <img src="logo.svg" alt="SimplePage Logo" class="logo">
+       <h1>SimplePage Leaderboard</h1>
+     </div>
+     <p>Top sites by visitors</p>
+   </header>
   ${tabs}
   ${tables}
   <footer>
