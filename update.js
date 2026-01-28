@@ -10,10 +10,6 @@ const PERIODS = [
 ];
 
 const API_KEY = process.env.PLAUSIBLE_API_KEY;
-if (!API_KEY) {
-  console.error('PLAUSIBLE_API_KEY environment variable is required');
-  process.exit(1);
-}
 
 function normalizeHostname(hostname) {
   if (hostname.endsWith('.eth.link') || hostname.endsWith('.eth.limo')) {
@@ -99,6 +95,10 @@ async function fetchData(period) {
 }
 
 async function main() {
+  if (!API_KEY) {
+    console.error('PLAUSIBLE_API_KEY environment variable is required');
+    process.exit(1);
+  }
   const data = {};
   for (const period of PERIODS) {
     console.log(`Fetching data for ${period.key}...`);
@@ -118,6 +118,14 @@ async function main() {
 function generateHTML(data) {
   const timestamp = new Date().toLocaleString('sv-SE');
   const periods = PERIODS;
+  const filter = `
+  <div class="filter-row">
+    <label class="testnet-toggle">
+      <input type="checkbox" id="testnet-toggle">
+      <span class="toggle-track" aria-hidden="true"></span>
+      <span class="toggle-label">Show testnet</span>
+    </label>
+  </div>`;
   let tabs = '<div class="tabs">';
   periods.forEach((period, idx) => {
     tabs += `<button class="tab-button ${idx === 0 ? 'active' : ''}" onclick="showPeriod('${period.key}')">${period.label}</button>`;
@@ -132,7 +140,8 @@ function generateHTML(data) {
       const changeClass = item.change ? (parseFloat(item.change) > 0 ? 'positive' : parseFloat(item.change) < 0 ? 'negative' : 'neutral') : '';
       const changeText = item.change ? `${item.change}%` : 'N/A';
       const domainLink = `https://${item.domain.replace('.eth', '.eth.link')}`;
-      tables += `<tr><td>${index + 1}</td><td><a href="${domainLink}" target="_blank" rel="noopener">${item.domain}</a></td><td>${item.visitors.toLocaleString()}</td><td class="${changeClass}">${changeText}</td></tr>`;
+      const netType = item.domain.endsWith('.eth.sepoliaens.eth') ? 'testnet' : 'mainnet';
+      tables += `<tr data-net="${netType}"><td class="rank-cell">${index + 1}</td><td><a href="${domainLink}" target="_blank" rel="noopener">${item.domain}</a></td><td>${item.visitors.toLocaleString()}</td><td class="${changeClass}">${changeText}</td></tr>`;
     });
     tables += '</tbody></table></div>';
   });
@@ -144,7 +153,45 @@ function showPeriod(period) {
   document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
   document.getElementById(period).style.display = 'block';
   event.target.classList.add('active');
+  updateVisibleRanks();
 }
+
+function updateVisibleRanks() {
+  document.querySelectorAll('.period-table').forEach(table => {
+    if (table.style.display === 'none') return;
+    let rank = 1;
+    table.querySelectorAll('tbody tr').forEach(row => {
+      if (row.style.display === 'none') return;
+      const cell = row.querySelector('.rank-cell');
+      if (cell) {
+        cell.textContent = rank;
+        rank += 1;
+      }
+    });
+  });
+}
+
+function applyTestnetFilter() {
+  const toggle = document.getElementById('testnet-toggle');
+  if (!toggle) return;
+  const showTestnetOnly = toggle.checked;
+  document.querySelectorAll('tr[data-net="testnet"]').forEach(row => {
+    row.style.display = showTestnetOnly ? '' : 'none';
+  });
+  document.querySelectorAll('tr[data-net="mainnet"]').forEach(row => {
+    row.style.display = showTestnetOnly ? 'none' : '';
+  });
+  updateVisibleRanks();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('testnet-toggle');
+  if (!toggle) return;
+  toggle.checked = false;
+  applyTestnetFilter();
+  toggle.addEventListener('change', applyTestnetFilter);
+  updateVisibleRanks();
+});
 </script>
 `;
 
@@ -165,8 +212,9 @@ function showPeriod(period) {
      </div>
      <p>Top sites by number of visitors</p>
    </header>
-  ${tabs}
-  ${tables}
+   ${tabs}
+   ${tables}
+   ${filter}
    <footer>
      <p>Updated daily | Last update: ${timestamp}</p>
    </footer>
@@ -175,4 +223,8 @@ function showPeriod(period) {
 </html>`;
 }
 
-main().catch(console.error);
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+module.exports = { generateHTML };
