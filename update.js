@@ -14,7 +14,11 @@ const API_KEY = process.env.PLAUSIBLE_API_KEY;
 function normalizeHostname(hostname) {
   if (hostname.endsWith('.eth.link') || hostname.endsWith('.eth.limo')) {
     const domain = hostname.slice(0, -9); // remove .eth.link or .eth.limo
-    return domain + '.eth';
+    const normalized = domain + '.eth';
+    if (normalized.endsWith('.s.raffy.eth')) {
+      return normalized.replace(/\.s\.raffy\.eth$/, '.sepoliaens.eth');
+    }
+    return normalized;
   }
   return null; // ignore
 }
