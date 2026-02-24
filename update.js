@@ -205,13 +205,14 @@ window.addEventListener('DOMContentLoaded', () => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SimplePage Leaderboard</title>
-  <link rel="icon" href="logo.svg">
+  <link rel="icon" href="images/spg-favicon-light.png" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="images/spg-favicon-dark.png" media="(prefers-color-scheme: dark)">
   <link rel="stylesheet" href="styles.css">
 </head>
  <body>
    <header>
      <div class="title-row">
-       <img src="logo.svg" alt="SimplePage Logo" class="logo">
+        <img src="images/spg-logo.png" alt="SimplePage Logo" class="logo mask mask-squircle">
        <h1>SimplePage Leaderboard</h1>
      </div>
      <p>Top sites by number of visitors</p>
